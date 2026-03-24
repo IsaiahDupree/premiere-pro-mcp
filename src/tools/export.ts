@@ -576,8 +576,35 @@ export function getExportTools(bridgeOptions: BridgeOptions) {
             app.project.setProxyEnabled(!app.project.isProxyEnabled());
             return __result({ action: "toggle", proxiesEnabled: !app.project.isProxyEnabled() });
           }
-          
+
           return __error("Unknown proxy action: " + action);
+        `);
+        return sendCommand(script, bridgeOptions);
+      },
+    },
+
+    set_encoder_xmp_enabled: {
+      description: "Enable or disable XMP metadata embedding/sidecar output during AME encoding",
+      parameters: {
+        type: "object" as const,
+        properties: {
+          embedded: {
+            type: "boolean",
+            description: "Embed XMP metadata in the output file (default: true)",
+          },
+          sidecar: {
+            type: "boolean",
+            description: "Write a sidecar .xmp file alongside the output (default: false)",
+          },
+        },
+      },
+      handler: async (args: { embedded?: boolean; sidecar?: boolean }) => {
+        const embedded = args.embedded !== false;
+        const sidecar = args.sidecar === true;
+        const script = buildToolScript(`
+          try { app.encoder.setEmbeddedXMPEnabled(${embedded ? 1 : 0}); } catch(e) {}
+          try { app.encoder.setSidecarXMPEnabled(${sidecar ? 1 : 0}); } catch(e) {}
+          return __result({ embeddedXMP: ${embedded}, sidecarXMP: ${sidecar} });
         `);
         return sendCommand(script, bridgeOptions);
       },

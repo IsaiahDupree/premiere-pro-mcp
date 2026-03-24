@@ -6,7 +6,7 @@ const BIN = join(process.cwd(), "dist", "index.js");
 
 describe("CLI flags", () => {
   it("--help prints usage and exits 0", () => {
-    const output = execSync(`node ${BIN} --help`, { encoding: "utf-8" });
+    const output = execSync(`node "${BIN}" --help`, { encoding: "utf-8" });
     expect(output).toContain("premiere-pro-mcp");
     expect(output).toContain("Usage:");
     expect(output).toContain("--install-cep");
@@ -15,24 +15,24 @@ describe("CLI flags", () => {
   });
 
   it("-h is an alias for --help", () => {
-    const output = execSync(`node ${BIN} -h`, { encoding: "utf-8" });
+    const output = execSync(`node "${BIN}" -h`, { encoding: "utf-8" });
     expect(output).toContain("Usage:");
   });
 
   it("--version prints a semver version and exits 0", () => {
-    const output = execSync(`node ${BIN} --version`, { encoding: "utf-8" }).trim();
+    const output = execSync(`node "${BIN}" --version`, { encoding: "utf-8" }).trim();
     expect(output).toMatch(/^\d+\.\d+\.\d+$/);
   });
 
   it("-v is an alias for --version", () => {
-    const output = execSync(`node ${BIN} -v`, { encoding: "utf-8" }).trim();
+    const output = execSync(`node "${BIN}" -v`, { encoding: "utf-8" }).trim();
     expect(output).toMatch(/^\d+\.\d+\.\d+$/);
   });
 
   it("--version matches package.json version", () => {
-    const version = execSync(`node ${BIN} --version`, { encoding: "utf-8" }).trim();
+    const version = execSync(`node "${BIN}" --version`, { encoding: "utf-8" }).trim();
     const pkg = JSON.parse(
-      execSync(`cat ${join(process.cwd(), "package.json")}`, { encoding: "utf-8" })
+      execSync(`cat "${join(process.cwd(), "package.json")}"`, { encoding: "utf-8" })
     );
     expect(version).toBe(pkg.version);
   });

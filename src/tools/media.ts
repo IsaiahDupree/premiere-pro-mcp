@@ -470,5 +470,199 @@ export function getMediaTools(bridgeOptions: BridgeOptions) {
         return sendCommand(script, bridgeOptions);
       },
     },
+
+    get_clip_source_in_out: {
+      description: "Get the source in/out points of a project item (the marked range within the source media)",
+      parameters: {
+        type: "object" as const,
+        properties: {
+          item_id: {
+            type: "string",
+            description: "Node ID or name of the project item",
+          },
+        },
+        required: ["item_id"],
+      },
+      handler: async (args: { item_id: string }) => {
+        const script = buildToolScript(`
+          var item = __findProjectItem("${escapeForExtendScript(args.item_id)}");
+          if (!item) return __error("Item not found");
+
+          var info = { item: item.name };
+          try {
+            var inPt = item.getInPoint();
+            info.inSeconds = inPt ? __ticksToSeconds(inPt.ticks) : null;
+          } catch(e) { info.inSeconds = null; }
+          try {
+            var outPt = item.getOutPoint();
+            info.outSeconds = outPt ? __ticksToSeconds(outPt.ticks) : null;
+          } catch(e) { info.outSeconds = null; }
+
+          return __result(info);
+        `);
+        return sendCommand(script, bridgeOptions);
+      },
+    },
+
+    set_clip_source_in: {
+      description: "Set the source in point of a project item",
+      parameters: {
+        type: "object" as const,
+        properties: {
+          item_id: {
+            type: "string",
+            description: "Node ID or name of the project item",
+          },
+          in_seconds: {
+            type: "number",
+            description: "In point in seconds",
+          },
+        },
+        required: ["item_id", "in_seconds"],
+      },
+      handler: async (args: { item_id: string; in_seconds: number }) => {
+        const script = buildToolScript(`
+          var item = __findProjectItem("${escapeForExtendScript(args.item_id)}");
+          if (!item) return __error("Item not found");
+
+          var t = new Time();
+          t.ticks = __secondsToTicks(${args.in_seconds}).toString();
+          item.setInPoint(t, 1);
+          return __result({ set: true, item: item.name, inSeconds: ${args.in_seconds} });
+        `);
+        return sendCommand(script, bridgeOptions);
+      },
+    },
+
+    set_clip_source_out: {
+      description: "Set the source out point of a project item",
+      parameters: {
+        type: "object" as const,
+        properties: {
+          item_id: {
+            type: "string",
+            description: "Node ID or name of the project item",
+          },
+          out_seconds: {
+            type: "number",
+            description: "Out point in seconds",
+          },
+        },
+        required: ["item_id", "out_seconds"],
+      },
+      handler: async (args: { item_id: string; out_seconds: number }) => {
+        const script = buildToolScript(`
+          var item = __findProjectItem("${escapeForExtendScript(args.item_id)}");
+          if (!item) return __error("Item not found");
+
+          var t = new Time();
+          t.ticks = __secondsToTicks(${args.out_seconds}).toString();
+          item.setOutPoint(t, 1);
+          return __result({ set: true, item: item.name, outSeconds: ${args.out_seconds} });
+        `);
+        return sendCommand(script, bridgeOptions);
+      },
+    },
+
+    clear_clip_source_in: {
+      description: "Clear the source in point of a project item (resets to media start)",
+      parameters: {
+        type: "object" as const,
+        properties: {
+          item_id: {
+            type: "string",
+            description: "Node ID or name of the project item",
+          },
+        },
+        required: ["item_id"],
+      },
+      handler: async (args: { item_id: string }) => {
+        const script = buildToolScript(`
+          var item = __findProjectItem("${escapeForExtendScript(args.item_id)}");
+          if (!item) return __error("Item not found");
+
+          item.clearInPoint(1);
+          return __result({ cleared: true, item: item.name, point: "in" });
+        `);
+        return sendCommand(script, bridgeOptions);
+      },
+    },
+
+    clear_clip_source_out: {
+      description: "Clear the source out point of a project item (resets to media end)",
+      parameters: {
+        type: "object" as const,
+        properties: {
+          item_id: {
+            type: "string",
+            description: "Node ID or name of the project item",
+          },
+        },
+        required: ["item_id"],
+      },
+      handler: async (args: { item_id: string }) => {
+        const script = buildToolScript(`
+          var item = __findProjectItem("${escapeForExtendScript(args.item_id)}");
+          if (!item) return __error("Item not found");
+
+          item.clearOutPoint(1);
+          return __result({ cleared: true, item: item.name, point: "out" });
+        `);
+        return sendCommand(script, bridgeOptions);
+      },
+    },
+
+    get_item_color_space: {
+      description: "Get the original color space of a project item",
+      parameters: {
+        type: "object" as const,
+        properties: {
+          item_id: {
+            type: "string",
+            description: "Node ID or name of the project item",
+          },
+        },
+        required: ["item_id"],
+      },
+      handler: async (args: { item_id: string }) => {
+        const script = buildToolScript(`
+          var item = __findProjectItem("${escapeForExtendScript(args.item_id)}");
+          if (!item) return __error("Item not found");
+
+          var colorSpace = null;
+          try { colorSpace = item.getOriginalColorSpace(); } catch(e) {}
+
+          return __result({ item: item.name, colorSpace: colorSpace });
+        `);
+        return sendCommand(script, bridgeOptions);
+      },
+    },
+
+    get_item_lut_ids: {
+      description: "Get the embedded and input LUT IDs for a project item",
+      parameters: {
+        type: "object" as const,
+        properties: {
+          item_id: {
+            type: "string",
+            description: "Node ID or name of the project item",
+          },
+        },
+        required: ["item_id"],
+      },
+      handler: async (args: { item_id: string }) => {
+        const script = buildToolScript(`
+          var item = __findProjectItem("${escapeForExtendScript(args.item_id)}");
+          if (!item) return __error("Item not found");
+
+          var info = { item: item.name };
+          try { info.embeddedLUTID = item.getEmbeddedLUTID(); } catch(e) {}
+          try { info.inputLUTID = item.getInputLUTID(); } catch(e) {}
+
+          return __result(info);
+        `);
+        return sendCommand(script, bridgeOptions);
+      },
+    },
   };
 }

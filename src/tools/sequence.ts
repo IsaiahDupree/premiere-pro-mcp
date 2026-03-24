@@ -361,5 +361,22 @@ export function getSequenceTools(bridgeOptions: BridgeOptions) {
         return sendCommand(script, bridgeOptions);
       },
     },
+
+    get_sequence_analysis_status: {
+      description: "Check whether the active sequence has finished analyzing for video effects",
+      parameters: {},
+      handler: async () => {
+        const script = buildToolScript(`
+          var seq = app.project.activeSequence;
+          if (!seq) return __error("No active sequence");
+
+          var done = false;
+          try { done = seq.isDoneAnalyzingForVideoEffects(); } catch(e) {}
+
+          return __result({ sequenceName: seq.name, analysisDone: done });
+        `);
+        return sendCommand(script, bridgeOptions);
+      },
+    },
   };
 }

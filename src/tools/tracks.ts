@@ -137,8 +137,99 @@ export function getTrackTools(bridgeOptions: BridgeOptions) {
           
           var track = seq.videoTracks[${args.track_index}];
           track.setMute(${args.visible ? 0 : 1});
-          
+
           return __result({ trackIndex: ${args.track_index}, visible: ${args.visible}, trackName: track.name });
+        `);
+        return sendCommand(script, bridgeOptions);
+      },
+    },
+
+    get_track_mute: {
+      description: "Check whether a video or audio track is muted",
+      parameters: {
+        type: "object" as const,
+        properties: {
+          track_type: {
+            type: "string",
+            enum: ["video", "audio"],
+            description: "Type of track",
+          },
+          track_index: {
+            type: "number",
+            description: "Track index (0-based)",
+          },
+        },
+        required: ["track_type", "track_index"],
+      },
+      handler: async (args: { track_type: string; track_index: number }) => {
+        const script = buildToolScript(`
+          var seq = app.project.activeSequence;
+          if (!seq) return __error("No active sequence");
+
+          ${args.track_type === "video"
+            ? `if (${args.track_index} >= seq.videoTracks.numTracks) return __error("Track index out of range");
+               var track = seq.videoTracks[${args.track_index}];`
+            : `if (${args.track_index} >= seq.audioTracks.numTracks) return __error("Track index out of range");
+               var track = seq.audioTracks[${args.track_index}];`
+          }
+
+          var muted = false;
+          try { muted = track.isMuted(); } catch(e) { muted = !!track.mute; }
+
+          return __result({ trackIndex: ${args.track_index}, trackType: "${args.track_type}", trackName: track.name, muted: muted });
+        `);
+        return sendCommand(script, bridgeOptions);
+      },
+    },
+
+    remove_tracks_qe: {
+      description: "Remove video and/or audio tracks from the active sequence using QE DOM",
+      parameters: {
+        type: "object" as const,
+        properties: {
+          video_track_index: {
+            type: "number",
+            description: "Video track index to remove (-1 to skip)",
+          },
+          audio_track_index: {
+            type: "number",
+            description: "Audio track index to remove (-1 to skip)",
+          },
+          audio_mono_track_index: {
+            type: "number",
+            description: "Mono audio track index to remove (-1 to skip, default: -1)",
+          },
+          audio_51_track_index: {
+            type: "number",
+            description: "5.1 audio track index to remove (-1 to skip, default: -1)",
+          },
+        },
+        required: ["video_track_index", "audio_track_index"],
+      },
+      handler: async (args: {
+        video_track_index: number;
+        audio_track_index: number;
+        audio_mono_track_index?: number;
+        audio_51_track_index?: number;
+      }) => {
+        const vIdx = args.video_track_index;
+        const aIdx = args.audio_track_index;
+        const aMonoIdx = args.audio_mono_track_index ?? -1;
+        const a51Idx = args.audio_51_track_index ?? -1;
+
+        const script = buildToolScript(`
+          app.enableQE();
+          var qeSeq = qe.project.getActiveSequence();
+          if (!qeSeq) return __error("No active sequence (QE)");
+
+          qeSeq.removeTracks(${vIdx}, ${aIdx}, ${aMonoIdx}, ${a51Idx});
+          return __result({
+            removed: true,
+            videoTrackIndex: ${vIdx},
+            audioTrackIndex: ${aIdx},
+            audioMonoTrackIndex: ${aMonoIdx},
+            audio51TrackIndex: ${a51Idx}
+          });
         `);
         return sendCommand(script, bridgeOptions);
       },

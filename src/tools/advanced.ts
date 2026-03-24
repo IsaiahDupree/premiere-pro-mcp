@@ -949,7 +949,7 @@ export function getAdvancedTools(bridgeOptions: BridgeOptions) {
           
           var mgtComp = result.clip.getMGTComponent();
           if (!mgtComp) return __error("Not a MOGRT clip or no MGT component found");
-          
+
           var params = [];
           for (var i = 0; i < mgtComp.properties.numItems; i++) {
             var p = mgtComp.properties[i];
@@ -958,8 +958,63 @@ export function getAdvancedTools(bridgeOptions: BridgeOptions) {
               value: p.getValue()
             });
           }
-          
+
           return __result({ clipName: result.clip.name, parameters: params });
+        `);
+        return sendCommand(script, bridgeOptions);
+      },
+    },
+
+    move_clip_qe: {
+      description: "Move a clip to a new timeline position using QE DOM. More reliable than ExtendScript for clip repositioning.",
+      parameters: {
+        type: "object" as const,
+        properties: {
+          node_id: {
+            type: "string",
+            description: "Node ID of the clip to move",
+          },
+          new_time_seconds: {
+            type: "number",
+            description: "New start time in seconds on the timeline",
+          },
+        },
+        required: ["node_id", "new_time_seconds"],
+      },
+      handler: async (args: { node_id: string; new_time_seconds: number }) => {
+        const script = buildToolScript(`
+          app.enableQE();
+          var qeSeq = qe.project.getActiveSequence();
+          if (!qeSeq) return __error("No active sequence (QE)");
+
+          var result = __findClip("${escapeForExtendScript(args.node_id)}");
+          if (!result) return __error("Clip not found: ${escapeForExtendScript(args.node_id)}");
+
+          var qeTrack = result.trackType === "video"
+            ? qeSeq.getVideoTrackAt(result.trackIndex)
+            : qeSeq.getAudioTrackAt(result.trackIndex);
+          if (!qeTrack) return __error("QE track not found");
+
+          var qeClip = null;
+          for (var i = 0; i < qeTrack.numItems; i++) {
+            var c = qeTrack.getItemAt(i);
+            if (c && c.uniqueID === result.clip.nodeId) {
+              qeClip = c;
+              break;
+            }
+          }
+          if (!qeClip) return __error("QE clip not found on track");
+
+          var newTicks = __secondsToTicks(${args.new_time_seconds}).toString();
+          var newTime = new Time();
+          newTime.ticks = newTicks;
+          qeClip.move(newTime);
+
+          return __result({
+            moved: true,
+            clipName: result.clip.name,
+            newTimeSeconds: ${args.new_time_seconds}
+          });
         `);
         return sendCommand(script, bridgeOptions);
       },

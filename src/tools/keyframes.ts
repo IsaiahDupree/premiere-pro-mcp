@@ -556,5 +556,195 @@ export function getKeyframeTools(bridgeOptions: BridgeOptions) {
         return sendCommand(script, bridgeOptions);
       },
     },
+
+    find_nearest_keyframe: {
+      description: "Find the keyframe nearest to a given time on an effect property",
+      parameters: {
+        type: "object" as const,
+        properties: {
+          node_id: {
+            type: "string",
+            description: "Node ID of the clip",
+          },
+          effect_name: {
+            type: "string",
+            description: "Display name of the effect",
+          },
+          property_name: {
+            type: "string",
+            description: "Display name of the property",
+          },
+          time_seconds: {
+            type: "number",
+            description: "Time in seconds to search from",
+          },
+          threshold_seconds: {
+            type: "number",
+            description: "Search radius in seconds (default: 0.5)",
+          },
+        },
+        required: ["node_id", "effect_name", "property_name", "time_seconds"],
+      },
+      handler: async (args: { node_id: string; effect_name: string; property_name: string; time_seconds: number; threshold_seconds?: number }) => {
+        const threshold = args.threshold_seconds ?? 0.5;
+        const script = buildToolScript(`
+          var result = __findClip("${escapeForExtendScript(args.node_id)}");
+          if (!result) return __error("Clip not found");
+
+          var clip = result.clip;
+          var comp = null;
+          for (var i = 0; i < clip.components.numItems; i++) {
+            if (clip.components[i].displayName === "${escapeForExtendScript(args.effect_name)}" || clip.components[i].matchName === "${escapeForExtendScript(args.effect_name)}") {
+              comp = clip.components[i];
+              break;
+            }
+          }
+          if (!comp) return __error("Effect not found");
+
+          var prop = null;
+          for (var p = 0; p < comp.properties.numItems; p++) {
+            if (comp.properties[p].displayName === "${escapeForExtendScript(args.property_name)}") {
+              prop = comp.properties[p];
+              break;
+            }
+          }
+          if (!prop) return __error("Property not found");
+
+          var time = new Time();
+          time.ticks = __secondsToTicks(${args.time_seconds}).toString();
+          var threshold = new Time();
+          threshold.ticks = __secondsToTicks(${threshold}).toString();
+
+          var nearest = null;
+          try { nearest = prop.findNearestKey(time, threshold); } catch(e) {}
+
+          if (!nearest) return __result({ found: false, time: ${args.time_seconds} });
+          return __result({ found: true, keyTimeSeconds: __ticksToSeconds(nearest.ticks) });
+        `);
+        return sendCommand(script, bridgeOptions);
+      },
+    },
+
+    find_next_keyframe: {
+      description: "Find the next keyframe after a given time on an effect property",
+      parameters: {
+        type: "object" as const,
+        properties: {
+          node_id: {
+            type: "string",
+            description: "Node ID of the clip",
+          },
+          effect_name: {
+            type: "string",
+            description: "Display name of the effect",
+          },
+          property_name: {
+            type: "string",
+            description: "Display name of the property",
+          },
+          time_seconds: {
+            type: "number",
+            description: "Time in seconds to search after",
+          },
+        },
+        required: ["node_id", "effect_name", "property_name", "time_seconds"],
+      },
+      handler: async (args: { node_id: string; effect_name: string; property_name: string; time_seconds: number }) => {
+        const script = buildToolScript(`
+          var result = __findClip("${escapeForExtendScript(args.node_id)}");
+          if (!result) return __error("Clip not found");
+
+          var clip = result.clip;
+          var comp = null;
+          for (var i = 0; i < clip.components.numItems; i++) {
+            if (clip.components[i].displayName === "${escapeForExtendScript(args.effect_name)}" || clip.components[i].matchName === "${escapeForExtendScript(args.effect_name)}") {
+              comp = clip.components[i];
+              break;
+            }
+          }
+          if (!comp) return __error("Effect not found");
+
+          var prop = null;
+          for (var p = 0; p < comp.properties.numItems; p++) {
+            if (comp.properties[p].displayName === "${escapeForExtendScript(args.property_name)}") {
+              prop = comp.properties[p];
+              break;
+            }
+          }
+          if (!prop) return __error("Property not found");
+
+          var time = new Time();
+          time.ticks = __secondsToTicks(${args.time_seconds}).toString();
+
+          var next = null;
+          try { next = prop.findNextKey(time); } catch(e) {}
+
+          if (!next) return __result({ found: false, searchedFrom: ${args.time_seconds} });
+          return __result({ found: true, keyTimeSeconds: __ticksToSeconds(next.ticks) });
+        `);
+        return sendCommand(script, bridgeOptions);
+      },
+    },
+
+    find_previous_keyframe: {
+      description: "Find the previous keyframe before a given time on an effect property",
+      parameters: {
+        type: "object" as const,
+        properties: {
+          node_id: {
+            type: "string",
+            description: "Node ID of the clip",
+          },
+          effect_name: {
+            type: "string",
+            description: "Display name of the effect",
+          },
+          property_name: {
+            type: "string",
+            description: "Display name of the property",
+          },
+          time_seconds: {
+            type: "number",
+            description: "Time in seconds to search before",
+          },
+        },
+        required: ["node_id", "effect_name", "property_name", "time_seconds"],
+      },
+      handler: async (args: { node_id: string; effect_name: string; property_name: string; time_seconds: number }) => {
+        const script = buildToolScript(`
+          var result = __findClip("${escapeForExtendScript(args.node_id)}");
+          if (!result) return __error("Clip not found");
+
+          var clip = result.clip;
+          var comp = null;
+          for (var i = 0; i < clip.components.numItems; i++) {
+            if (clip.components[i].displayName === "${escapeForExtendScript(args.effect_name)}" || clip.components[i].matchName === "${escapeForExtendScript(args.effect_name)}") {
+              comp = clip.components[i];
+              break;
+            }
+          }
+          if (!comp) return __error("Effect not found");
+
+          var prop = null;
+          for (var p = 0; p < comp.properties.numItems; p++) {
+            if (comp.properties[p].displayName === "${escapeForExtendScript(args.property_name)}") {
+              prop = comp.properties[p];
+              break;
+            }
+          }
+          if (!prop) return __error("Property not found");
+
+          var time = new Time();
+          time.ticks = __secondsToTicks(${args.time_seconds}).toString();
+
+          var prev = null;
+          try { prev = prop.findPreviousKey(time); } catch(e) {}
+
+          if (!prev) return __result({ found: false, searchedFrom: ${args.time_seconds} });
+          return __result({ found: true, keyTimeSeconds: __ticksToSeconds(prev.ticks) });
+        `);
+        return sendCommand(script, bridgeOptions);
+      },
+    },
   };
 }

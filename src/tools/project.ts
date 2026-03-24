@@ -579,5 +579,114 @@ export function getProjectTools(bridgeOptions: BridgeOptions) {
         return sendCommand(script, bridgeOptions);
       },
     },
+
+    get_project_view_ids: {
+      description: "Get the IDs of all open project views (for multi-project workflows)",
+      parameters: {},
+      handler: async () => {
+        const script = buildToolScript(`
+          var ids = [];
+          try {
+            var viewIDs = app.getProjectViewIDs();
+            if (viewIDs) {
+              for (var i = 0; i < viewIDs.length; i++) {
+                ids.push(viewIDs[i]);
+              }
+            }
+          } catch(e) {}
+          return __result({ projectViewIDs: ids, count: ids.length });
+        `);
+        return sendCommand(script, bridgeOptions);
+      },
+    },
+
+    get_current_project_view_selection: {
+      description: "Get the currently selected items in the active project view",
+      parameters: {},
+      handler: async () => {
+        const script = buildToolScript(`
+          var items = [];
+          try {
+            var selection = app.getCurrentProjectViewSelection();
+            if (selection) {
+              for (var i = 0; i < selection.numItems; i++) {
+                var item = selection[i];
+                items.push({
+                  name: item.name,
+                  nodeId: item.nodeId,
+                  type: item.type === 1 ? "clip" : item.type === 2 ? "bin" : "sequence"
+                });
+              }
+            }
+          } catch(e) {}
+          return __result({ selected: items, count: items.length });
+        `);
+        return sendCommand(script, bridgeOptions);
+      },
+    },
+
+    get_enable_proxies: {
+      description: "Check whether proxy playback is currently enabled for the project",
+      parameters: {},
+      handler: async () => {
+        const script = buildToolScript(`
+          var enabled = false;
+          try { enabled = !!app.getEnableProxies(); } catch(e) {}
+          return __result({ proxiesEnabled: enabled });
+        `);
+        return sendCommand(script, bridgeOptions);
+      },
+    },
+
+    get_app_property: {
+      description: "Get a persistent application property value by key",
+      parameters: {
+        type: "object" as const,
+        properties: {
+          key: {
+            type: "string",
+            description: "Property key to read from app.properties",
+          },
+        },
+        required: ["key"],
+      },
+      handler: async (args: { key: string }) => {
+        const script = buildToolScript(`
+          var value = null;
+          try { value = app.properties.getString("${escapeForExtendScript(args.key)}", 0); } catch(e) {}
+          return __result({ key: "${escapeForExtendScript(args.key)}", value: value });
+        `);
+        return sendCommand(script, bridgeOptions);
+      },
+    },
+
+    set_app_property: {
+      description: "Set a persistent application property value by key",
+      parameters: {
+        type: "object" as const,
+        properties: {
+          key: {
+            type: "string",
+            description: "Property key to write to app.properties",
+          },
+          value: {
+            type: "string",
+            description: "String value to store",
+          },
+        },
+        required: ["key", "value"],
+      },
+      handler: async (args: { key: string; value: string }) => {
+        const script = buildToolScript(`
+          try {
+            app.properties.setString("${escapeForExtendScript(args.key)}", 0, "${escapeForExtendScript(args.value)}");
+          } catch(e) {
+            return __error("Failed to set property: " + e.message);
+          }
+          return __result({ set: true, key: "${escapeForExtendScript(args.key)}", value: "${escapeForExtendScript(args.value)}" });
+        `);
+        return sendCommand(script, bridgeOptions);
+      },
+    },
   };
 }
