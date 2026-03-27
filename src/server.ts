@@ -28,6 +28,8 @@ import { getWorkspaceTools } from "./tools/workspace.js";
 import { getCaptionTools } from "./tools/captions.js";
 import { getPlaybackTools } from "./tools/playback.js";
 import { getProjectManagerTools } from "./tools/project-manager.js";
+import { getUgcTools } from "./tools/ugc.js";
+import { getQaTools } from "./tools/qa.js";
 import { EXTENDSCRIPT_REFERENCE } from "./resources/extendscript-reference.js";
 import { z } from "zod";
 
@@ -186,6 +188,8 @@ export function createServer(bridgeOptions: BridgeOptions): McpServer {
     ...getCaptionTools(bridgeOptions),
     ...getPlaybackTools(bridgeOptions),
     ...getProjectManagerTools(bridgeOptions),
+    ...getUgcTools(bridgeOptions),
+    ...getQaTools(bridgeOptions),
   };
 
   // Register each tool with the MCP server

@@ -45,6 +45,8 @@ import { getWorkspaceTools } from "../../src/tools/workspace.js";
 import { getCaptionTools } from "../../src/tools/captions.js";
 import { getPlaybackTools } from "../../src/tools/playback.js";
 import { getProjectManagerTools } from "../../src/tools/project-manager.js";
+import { getUgcTools } from "../../src/tools/ugc.js";
+import { getQaTools } from "../../src/tools/qa.js";
 
 interface ToolDef {
   description: string;
@@ -88,6 +90,8 @@ const ALL_MODULES: Array<{
   { name: "captions", getter: getCaptionTools, minTools: 1 },
   { name: "playback", getter: getPlaybackTools, minTools: 3 },
   { name: "project-manager", getter: getProjectManagerTools, minTools: 1 },
+  { name: "ugc", getter: getUgcTools, minTools: 8 },
+  { name: "qa", getter: getQaTools, minTools: 6 },
 ];
 
 describe("Tool Module Structure", () => {
@@ -169,16 +173,16 @@ describe("Tool Module Structure", () => {
 });
 
 describe("Total Tool Count", () => {
-  it("all modules together have 286 tools", () => {
+  it("all modules together have 300 tools", () => {
     let total = 0;
     for (const mod of ALL_MODULES) {
       total += Object.keys(mod.getter(bridgeOptions)).length;
     }
-    expect(total).toBe(286);
+    expect(total).toBe(300);
   });
 
-  it("there are 28 modules", () => {
-    expect(ALL_MODULES.length).toBe(28);
+  it("there are 30 modules", () => {
+    expect(ALL_MODULES.length).toBe(30);
   });
 });
 
