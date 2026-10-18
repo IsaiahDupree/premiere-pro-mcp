@@ -1,0 +1,68 @@
+name: Publish npm
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: npm dist-tag to publish
+        required: true
+        default: latest
+      skip_tests:
+        description: Skip tests after build
+        required: true
+        default: "false"
+        type: choice
+        options:
+          - "false"
+          - "true"
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  build-signed-cep:
+    name: Build signed CEP package
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Build and verify signed ZXP
+        shell: pwsh
+        run: ./scripts/build-signed-cep.ps1
+      - uses: actions/upload-artifact@v7
+        with:
+          name: signed-cep
+          path: artifacts/MCPBridgeCEP.zxp
+          if-no-files-found: error
+
+  publish:
+    name: Publish package
+    needs: build-signed-cep
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
+        with:
+          name: signed-cep
+          path: artifacts
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org/
+          package-manager-cache: false
+      - run: npm install --global npm@latest
+      - run: npm ci
+      - run: npm run build
+      - if: ${{ inputs.skip_tests != 'true' }}
+        run: npm test
+      - run: npm pack --dry-run
+      - name: Fail if version is already published
+        shell: bash
+        run: |
+          VERSION="$(node -p "require('./package.json').version")"
+          if npm view "premiere-pro-mcp@${VERSION}" version >/dev/null 2>&1; then
+            echo "premiere-pro-mcp@${VERSION} is already published."
+            exit 1
+          fi
+      - name: Publish to npm
+        run: npm publish --access public --tag "${{ inputs.tag }}"

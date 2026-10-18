@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MCP Bridge</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main class="panel-shell">
+    <header class="panel-header">
+      <div class="brand-mark" aria-hidden="true"><span>M</span></div>
+      <div class="brand-copy">
+        <h1>MCP Bridge</h1>
+        <p>Premiere Pro connection</p>
+      </div>
+      <div class="auto-start"><span></span>Auto-start</div>
+    </header>
+
+    <section class="status-panel" role="status" aria-live="polite" aria-atomic="true">
+      <div class="status-indicator" aria-hidden="true">
+        <div class="status-ring"><div class="status-dot connected" id="statusDot"></div></div>
+      </div>
+      <div class="status-copy">
+        <span class="section-label">Bridge status</span>
+        <strong id="statusText">Connected</strong>
+        <span id="statusDetail">Premiere Pro link is active</span>
+      </div>
+      <div class="command-stat">
+        <strong id="cmdCount">0</strong>
+        <span>commands</span>
+      </div>
+    </section>
+
+    <section class="config-section">
+      <div class="section-heading">
+        <div>
+          <span class="section-label">Configuration</span>
+          <h2>Bridge directory</h2>
+        </div>
+        <button class="save-link" id="btnSave" onclick="saveTempDir()" type="button" title="Save bridge directory">
+          <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 3.5h9.4L16.5 6v10.5h-13v-13Z"/><path d="M6.5 3.5v5h7v-5M6.5 16.5v-5h7v5"/></svg>
+          Save
+        </button>
+      </div>
+      <label class="sr-only" for="tempDir">Temporary bridge directory</label>
+      <div class="path-field">
+        <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M2.5 5.5h5l1.5 2h8.5v8h-15v-10Z"/></svg>
+        <input type="text" id="tempDir" value="" spellcheck="false" autocomplete="off" aria-describedby="tempDirHelp">
+      </div>
+      <p class="field-help" id="tempDirHelp">Commands and responses are exchanged through this local folder.</p>
+    </section>
+
+    <div class="action-row">
+      <button id="btnStart" class="button button-primary" onclick="startBridge()" type="button" aria-controls="log">
+        <svg viewBox="0 0 20 20" aria-hidden="true"><path class="fill-icon" d="m7 5 8 5-8 5V5Z"/></svg>
+        Start Bridge
+      </button>
+      <button id="btnStop" class="button button-stop" onclick="stopBridge()" type="button" aria-controls="log" disabled>
+        <svg viewBox="0 0 20 20" aria-hidden="true"><rect class="fill-icon" x="6" y="6" width="8" height="8" rx="1"/></svg>
+        Stop
+      </button>
+    </div>
+
+    <section class="update-section" aria-live="polite">
+      <div class="update-copy">
+        <span class="section-label">Connector updates</span>
+        <strong id="updateTitle">Version 1.6.0</strong>
+        <span id="updateDetail">Checking for updates…</span>
+      </div>
+      <button id="btnUpdate" class="button button-update" onclick="handleUpdateClick()" type="button" disabled>
+        Check again
+      </button>
+    </section>
+
+    <section class="activity-section">
+      <div class="section-heading activity-heading">
+        <div>
+          <span class="section-label">Live monitor</span>
+          <h2>Activity</h2>
+        </div>
+        <span class="activity-state"><span></span>Listening</span>
+      </div>
+      <div id="log" role="log" aria-live="polite" aria-relevant="additions" tabindex="0" aria-label="Bridge activity log"></div>
+    </section>
+  </main>
+
+  <script src="CSInterface.js"></script>
+  <script src="updater.cjs"></script>
+  <script src="main.js"></script>
+</body>
+</html>

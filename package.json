@@ -1,0 +1,93 @@
+{
+  "name": "premiere-pro-mcp",
+  "version": "1.6.0",
+  "description": "Adobe Premiere Pro MCP server with 279 core AI video editing tools and a capability-aware UXP bridge for supported Premiere workflows.",
+  "main": "dist/index.js",
+  "types": "./dist/index.d.ts",
+  "type": "module",
+  "bin": {
+    "premiere-pro-mcp": "dist/index.js"
+  },
+  "files": [
+    "dist/**/*.js",
+    "dist/**/*.d.ts",
+    "cep-plugin",
+    "artifacts/MCPBridgeCEP.zxp",
+    "uxp-plugin",
+    "scripts",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "build:claude": "npm run build && node scripts/build-claude-desktop.mjs",
+    "dev": "tsc --watch",
+    "start": "node dist/index.js",
+    "start:http": "node dist/http-server.js",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "install-cep": "node dist/index.js --install-cep",
+    "publish:npm": "node scripts/publish-npm.mjs",
+    "publish:npm:dry-run": "node scripts/publish-npm.mjs --dry-run"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/leancoderkavy/premiere-pro-mcp.git"
+  },
+  "homepage": "https://premiere-pro-mcp.com/",
+  "bugs": {
+    "url": "https://github.com/leancoderkavy/premiere-pro-mcp/issues"
+  },
+  "author": "Premiere Pro MCP contributors",
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "adobe",
+    "premiere-pro",
+    "video-editing",
+    "ai",
+    "extendscript",
+    "cep",
+    "claude",
+    "windsurf",
+    "cursor",
+    "automation",
+    "ai-video-editing",
+    "premiere-automation",
+    "claude-desktop",
+    "adobe-premiere-pro",
+    "video-editing-automation",
+    "ai-video-editor",
+    "mcp-server",
+    "mcp-tools",
+    "creative-cloud",
+    "premiere-pro-plugin",
+    "claude-code"
+  ],
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
+  "engines": {
+    "node": ">=20.19.0"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.30.0",
+    "posthog-node": "^5.46.1",
+    "ws": "^8.21.1",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@types/node": "^26.1.2",
+    "@types/ws": "^8.18.1",
+    "typescript": "^7.0.2",
+    "vitest": "^4.1.10"
+  },
+  "overrides": {
+    "@hono/node-server": "^2.0.5",
+    "body-parser": "^2.3.0"
+  }
+}

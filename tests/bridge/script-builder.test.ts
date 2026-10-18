@@ -1,0 +1,166 @@
+import { describe, it, expect } from "vitest";
+import { buildScript, escapeForExtendScript, buildToolScript, getHelpersSource, buildBootstrap, helpersFileName, HELPERS_VERSION } from "../../src/bridge/script-builder.js";
+import { runInNewContext } from "node:vm";
+
+describe("buildScript", () => {
+  it("wraps code in an IIFE with try/catch", () => {
+    const result = buildScript("return __result({ ok: true });");
+    expect(result).toContain("(function() {");
+    expect(result).toContain("return __result({ ok: true });");
+    expect(result).toContain("} catch(e) {");
+    expect(result).toContain("return __error(e.toString());");
+    expect(result).toContain("})();");
+  });
+
+  it("defines helper functions in the helpers source", () => {
+    const result = getHelpersSource();
+    expect(result).toContain("var TICKS_PER_SECOND = 254016000000;");
+    expect(result).toContain("function __ticksToSeconds(ticks)");
+    expect(result).toContain("function __secondsToTicks(seconds)");
+    expect(result).toContain("function __ticksToTimecode(ticks, fps)");
+    expect(result).toContain("function __pad(n)");
+    expect(result).toContain("function __findSequence(idOrName)");
+    expect(result).toContain("function __findProjectItem(nodeIdOrName, rootItem)");
+    expect(result).toContain("function __findClip(nodeId)");
+    expect(result).toContain("function __getAllClips(seq)");
+    expect(result).toContain("function __jsonStringify(obj)");
+    expect(result).toContain("function __result(data)");
+    expect(result).toContain("function __error(msg)");
+  });
+
+  it("preserves multi-line code blocks", () => {
+    const code = `var x = 1;
+    var y = 2;
+    return __result({ sum: x + y });`;
+    const result = buildScript(code);
+    expect(result).toContain("var x = 1;");
+    expect(result).toContain("var y = 2;");
+    expect(result).toContain("return __result({ sum: x + y });");
+  });
+
+  it("handles empty code", () => {
+    const result = buildScript("");
+    expect(result).toContain("(function() {");
+    expect(result).toContain("})();");
+  });
+
+  it("returns a string", () => {
+    expect(typeof buildScript("")).toBe("string");
+  });
+});
+
+describe("buildToolScript (alias)", () => {
+  it("is the same function as buildScript", () => {
+    expect(buildToolScript).toBe(buildScript);
+  });
+
+  it("produces identical output to buildScript", () => {
+    const code = "return __result({ test: true });";
+    expect(buildToolScript(code)).toBe(buildScript(code));
+  });
+});
+
+describe("escapeForExtendScript", () => {
+  it("escapes backslashes", () => {
+    expect(escapeForExtendScript("C:\\Users\\test")).toBe("C:\\\\Users\\\\test");
+  });
+
+  it("escapes double quotes", () => {
+    expect(escapeForExtendScript('say "hello"')).toBe('say \\"hello\\"');
+  });
+
+  it("escapes single quotes", () => {
+    expect(escapeForExtendScript("it's")).toBe("it\\'s");
+  });
+
+  it("escapes newlines", () => {
+    expect(escapeForExtendScript("line1\nline2")).toBe("line1\\nline2");
+  });
+
+  it("escapes carriage returns", () => {
+    expect(escapeForExtendScript("line1\rline2")).toBe("line1\\rline2");
+  });
+
+  it("escapes tabs", () => {
+    expect(escapeForExtendScript("col1\tcol2")).toBe("col1\\tcol2");
+  });
+
+  it("handles empty strings", () => {
+    expect(escapeForExtendScript("")).toBe("");
+  });
+
+  it("handles strings with no special characters", () => {
+    expect(escapeForExtendScript("hello world")).toBe("hello world");
+  });
+
+  it("handles multiple escape characters in one string", () => {
+    const input = 'C:\\path\\to\n"file"\t\'test\'';
+    const result = escapeForExtendScript(input);
+    expect(result).toBe('C:\\\\path\\\\to\\n\\"file\\"\\t\\\'test\\\'');
+  });
+
+  it("handles unicode characters (passes through)", () => {
+    expect(escapeForExtendScript("日本語")).toBe("日本語");
+  });
+});
+
+describe("generated script structure", () => {
+  it("bootstrap loads this exact helpers version via $.evalFile", () => {
+    const bootstrap = buildBootstrap("/tmp/x/" + helpersFileName());
+    expect(bootstrap).toContain(`__HELPERS_V !== "${HELPERS_VERSION}"`);
+    expect(bootstrap).toContain(`$.evalFile("/tmp/x/helpers_${HELPERS_VERSION}.jsx")`);
+    expect(getHelpersSource()).toContain(`var __HELPERS_V = "${HELPERS_VERSION}";`);
+  });
+
+  it("bootstrap escapes quotes and backslashes in the helpers path", () => {
+    const bootstrap = buildBootstrap('C:\\temp\\he"rs.jsx');
+    expect(bootstrap).toContain('$.evalFile("C:\\\\temp\\\\he\\"rs.jsx")');
+  });
+
+  it("__findProjectItem recursively searches bins", () => {
+    const result = getHelpersSource();
+    expect(result).toContain("if (item.type === 2)");
+    expect(result).toContain("var found = __findProjectItem(nodeIdOrName, item);");
+  });
+
+  it("__findClip searches both video and audio tracks", () => {
+    const result = getHelpersSource();
+    expect(result).toContain("seq.videoTracks.numTracks");
+    expect(result).toContain("seq.audioTracks.numTracks");
+    expect(result).toContain('trackType: "video"');
+    expect(result).toContain('trackType: "audio"');
+  });
+
+  it("__jsonStringify handles all types", () => {
+    const result = getHelpersSource();
+    expect(result).toContain('if (obj === null) return "null"');
+    expect(result).toContain('if (typeof obj === "string")');
+    expect(result).toContain('if (typeof obj === "number"');
+    expect(result).toContain("if (obj instanceof Array)");
+    expect(result).toContain('if (typeof obj === "object")');
+  });
+});
+
+describe("helpers execute correctly in an ES3-like engine", () => {
+  it("__result works when JSON is undefined (polyfill must not recurse into itself)", () => {
+    // Regression: __jsonStringify once delegated to JSON.stringify while the JSON
+    // polyfill delegated back to __jsonStringify — infinite mutual recursion that
+    // stack-overran the shared ExtendScript engine on every tool response.
+    const sandbox: Record<string, unknown> = { JSON: undefined };
+    const out = runInNewContext(
+      getHelpersSource() + '\n__result({ connected: true, nested: { n: 1, arr: [1, "a", false, null] } });',
+      sandbox
+    );
+    expect(out).toBe('{"success":true,"data":{"connected":true,"nested":{"n":1,"arr":[1,"a",false,null]}}}');
+  });
+
+  it("a stale wrapper from an older helpers version gets replaced", () => {
+    // Simulate a polluted long-lived engine: JSON.stringify is our old-style wrapper.
+    const stale = { stringify: function badWrapper(o: unknown) { return "__jsonStringify" + String(o); } };
+    const sandbox: Record<string, unknown> = { JSON: stale };
+    runInNewContext(getHelpersSource(), sandbox);
+    const json = sandbox.JSON as { stringify: (o: unknown) => string; __mcpPolyfill?: boolean };
+    expect(json.__mcpPolyfill).toBe(true);
+    expect(json.stringify({ ok: 1 })).toBe('{"ok":1}');
+  });
+});
